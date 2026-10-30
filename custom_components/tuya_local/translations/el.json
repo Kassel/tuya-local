@@ -41,7 +41,8 @@
                     "local_key": "Local key",
                     "protocol_version": "Έκδοση Πρωτοκόλλου (δοκιμάστε αυτόματο (auto) αν δεν το γνωρίζετε)",
                     "poll_only": "Ανίχνευση μόνο (δοκιμάστε αυτό αν η συσκευή δε λειτουργεί πλήρως)",
-                    "device_cid": "Sub device node_id ή uuid (για συσκευές συνδεμένες μέσω gateway)"
+                    "device_cid": "Sub device node_id ή uuid (για συσκευές συνδεμένες μέσω gateway)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Αδυναμία σύνδεσης στη συσκευή σας με αυτά τα στοιχεία. Ίσως είναι προσωρινό πρόβλημα, ή τα στοιχεία που καταχωρίσατε είναι λάθος. Αν επιλέξατε μια συγκεκριμένη έκδοση πρωτοκόλλου, δοκιμάστε 'auto' αντί για αυτήν.",
             "does_not_need_hub": "Η συσκευή δεν χρειάζεται κάποιο gateway και επιλέχτηκε ένα. Παρακαλώ ελέγξτε τις επιλογές.",
-            "needs_hub": "Η συσκευή χρειάζεται gateway και δεν επιλέχτηκε κάποιο."
+            "needs_hub": "Η συσκευή χρειάζεται gateway και δεν επιλέχτηκε κάποιο.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "Διεύθυνση IP ή όνομα",
                     "local_key": "Local key",
                     "protocol_version": "Έκδοση Πρωτοκόλλου (δοκιμάστε αυτόματο (auto) αν δεν το γνωρίζετε)",
-                    "poll_only": "Ανίχνευση μόνο (δοκιμάστε αυτό αν η συσκευή δε λειτουργεί πλήρως)"
+                    "poll_only": "Ανίχνευση μόνο (δοκιμάστε αυτό αν η συσκευή δε λειτουργεί πλήρως)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Αδυναμία σύνδεσης στη συσκευή σας με αυτά τα στοιχεία. Ίσως είναι προσωρινό πρόβλημα, ή τα στοιχεία που καταχωρίσατε είναι λάθος. Αν επιλέξατε μια συγκεκριμένη έκδοση πρωτοκόλλου, δοκιμάστε 'auto' αντί για αυτήν."
+            "connection": "Αδυναμία σύνδεσης στη συσκευή σας με αυτά τα στοιχεία. Ίσως είναι προσωρινό πρόβλημα, ή τα στοιχεία που καταχωρίσατε είναι λάθος. Αν επιλέξατε μια συγκεκριμένη έκδοση πρωτοκόλλου, δοκιμάστε 'auto' αντί για αυτήν.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Λυπούμαστε, αυτή η συσκευή δεν υποστηρίζεται."

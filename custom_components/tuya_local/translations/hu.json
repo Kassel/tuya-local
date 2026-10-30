@@ -41,7 +41,8 @@
                     "local_key": "Helyi kulcs (local_key)",
                     "protocol_version": "Protokol verzió (hagyd auto-n, ha nem tudod)",
                     "poll_only": "Csak olvasás (próbáld ki ezt, ha az eszköz nem működik rendesen)",
-                    "device_cid": "Aleszköz node_id vagy uuid (átjárón keresztül használt eszközök esetén)"
+                    "device_cid": "Aleszköz node_id vagy uuid (átjárón keresztül használt eszközök esetén)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "A megadott adatokkal nem sikerült kapcsolódni az eszközhöz. Lehet ideiglenes a probléma, vagy nem megfelelőek a megadott adatok. Ha egy adott protokoll verziót választottál, próbáld meg 'auto'-ra állítani.",
             "does_not_need_hub": "Az eszköznek nincs szüksége átjáróra",
-            "needs_hub": "Az eszköznek átjáróra van szüksége"
+            "needs_hub": "Az eszköznek átjáróra van szüksége",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP cím vagy állomásnév",
                     "local_key": "Helyi kulcs (local_key)",
                     "protocol_version": "Protokol verzió (hagyd auto-n, ha nem tudod)",
-                    "poll_only": "Csak olvasás (próbáld ki ezt, ha az eszköz nem működik rendesen)"
+                    "poll_only": "Csak olvasás (próbáld ki ezt, ha az eszköz nem működik rendesen)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "A megadott adatokkal nem sikerült kapcsolódni az eszközhöz. Lehet ideiglenes a probléma, vagy nem megfelelőek a megadott adatok. Ha egy adott protokoll verziót választottál, próbáld meg 'auto'-ra állítani."
+            "connection": "A megadott adatokkal nem sikerült kapcsolódni az eszközhöz. Lehet ideiglenes a probléma, vagy nem megfelelőek a megadott adatok. Ha egy adott protokoll verziót választottál, próbáld meg 'auto'-ra állítani.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Sajnálom, ez az eszköz nem támogatott."

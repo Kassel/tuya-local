@@ -41,7 +41,8 @@
                     "local_key": "Cheie locală",
                     "protocol_version": "Versiunea protocolului (încercați auto dacă nu este cunoscută)",
                     "poll_only": "Doar interogare (încercați dacă dispozitivul nu funcționează complet)",
-                    "device_cid": "Sub-device node_id sau uuid (pentru dispozitive conectate prin gateway)"
+                    "device_cid": "Sub-device node_id sau uuid (pentru dispozitive conectate prin gateway)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Nu s-a putut conecta la dispozitiv cu aceste detalii. Poate fi o problemă temporară sau datele pot fi incorecte. Dacă ați selectat o versiune specifică a protocolului, încercați 'auto' în schimb.",
             "does_not_need_hub": "Dispozitivul nu necesită gateway și unul a fost selectat. Vă rugăm să revizuiți alegerea.",
-            "needs_hub": "Dispozitivul necesită gateway și nu a fost selectat niciunul."
+            "needs_hub": "Dispozitivul necesită gateway și nu a fost selectat niciunul.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "Adresă IP sau hostname",
                     "local_key": "Cheie locală",
                     "protocol_version": "Versiunea protocolului (încercați auto dacă nu este cunoscută)",
-                    "poll_only": "Doar interogare (încercați dacă dispozitivul nu funcționează complet)"
+                    "poll_only": "Doar interogare (încercați dacă dispozitivul nu funcționează complet)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Nu s-a putut conecta la dispozitiv cu aceste detalii. Poate fi o problemă temporară sau datele pot fi incorecte. Dacă ați selectat o versiune specifică a protocolului, încercați 'auto' în schimb."
+            "connection": "Nu s-a putut conecta la dispozitiv cu aceste detalii. Poate fi o problemă temporară sau datele pot fi incorecte. Dacă ați selectat o versiune specifică a protocolului, încercați 'auto' în schimb.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Ne pare rău, acest dispozitiv nu este suportat."
@@ -1180,7 +1184,7 @@
                     "12_hour": "12 ore",
                     "24_hour": "24 ore"
                 }
-            }            
+            }
         },
         "sensor": {
             "ambient_temperature": {
@@ -1597,4 +1601,3 @@
         }
     }
 }
-

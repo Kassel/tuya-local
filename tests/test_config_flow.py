@@ -1712,3 +1712,32 @@ async def test_flow_integration_discovery_aborts_if_configured(hass):
     )
     assert result["type"] == "abort"
     assert result["reason"] == "already_configured"
+
+
+@pytest.mark.asyncio
+async def test_refresh_field_serializes_and_preserves_validation(hass, mocker):
+    """The custom validator must not leak into HA's form serialization."""
+    from custom_components.tuya_local.const import CONF_REFRESH_DPIDS
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "local"}
+    )
+    assert vol.to_field_list(result["data_schema"])
+    mock_connection = mocker.patch(
+        "custom_components.tuya_local.config_flow.async_test_connection"
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_DEVICE_ID: "test-device",
+            CONF_HOST: "test.invalid",
+            CONF_LOCAL_KEY: TESTKEY,
+            CONF_PROTOCOL_VERSION: "3.5",
+            CONF_POLL_ONLY: False,
+            CONF_REFRESH_DPIDS: "0,256",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_refresh_dpids"}
+    assert vol.to_field_list(result["data_schema"])
+    mock_connection.assert_not_called()

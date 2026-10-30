@@ -41,7 +41,8 @@
                     "local_key": "Kunci lokal (local_key)",
                     "protocol_version": "Versi protokol (coba otomatis bila tidak diketahui)",
                     "poll_only": "Hanya poll (Coba ini bila perangkat Anda tidak berfungsi secara penuh)",
-                    "device_cid": "node_id atau uuid sub perangkat (untuk perangkat yang tersambung via gateway)"
+                    "device_cid": "node_id atau uuid sub perangkat (untuk perangkat yang tersambung via gateway)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Tidak dapat terkoneksi ke perangkat Anda dengan detail tersebut. Bisa jadi masalah sementara, atau mungkin salah. Jika Anda memilih versi protokol tertentu, coba 'otomatis' sebagai gantinya.",
             "does_not_need_hub": "Perangkat tidak memerlukan gateway dan satu telah dipilih. ",
-            "needs_hub": "Perangkat memerlukan gateway dan tidak ada yang dipilih."
+            "needs_hub": "Perangkat memerlukan gateway dan tidak ada yang dipilih.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "Alamat IP atau nama hos",
                     "local_key": "Kunci lokal (local_key)",
                     "protocol_version": "Versi protokol (coba otomatis bila tidak diketahui)",
-                    "poll_only": "Hanya poll (Coba ini bila perangkat Anda tidak berfungsi secara penuh)"
+                    "poll_only": "Hanya poll (Coba ini bila perangkat Anda tidak berfungsi secara penuh)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Tidak dapat terkoneksi ke perangkat Anda dengan detail tersebut. Bisa jadi masalah sementara, atau mungkin salah. Jika Anda memilih versi protokol tertentu, coba 'otomatis' sebagai gantinya."
+            "connection": "Tidak dapat terkoneksi ke perangkat Anda dengan detail tersebut. Bisa jadi masalah sementara, atau mungkin salah. Jika Anda memilih versi protokol tertentu, coba 'otomatis' sebagai gantinya.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Maaf, perangkat ini belum didukung."

@@ -41,7 +41,8 @@
                     "local_key": "Local key",
                     "protocol_version": "Versione protocollo (prova 'auto' in caso di dubbi)",
                     "poll_only": "Poll only (prova questa opzione se il dispositivo non funziona correttamente)",
-                    "device_cid": "Sub device node_id o uuid (per dispositivi connessi tramite gateway)"
+                    "device_cid": "Sub device node_id o uuid (per dispositivi connessi tramite gateway)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Impossibile connettersi al dispositivo con quei dettagli. Potrebbe essere un problema intermittente o potrebbero essere errati. Se hai selezionato una versione specifica del protocollo, prova invece 'auto'.",
             "does_not_need_hub": "Il dispositivo non necessita di un gateway e ne è stato selezionato uno. ",
-            "needs_hub": "Il dispositivo necessita di un gateway e non ne è stato selezionato nessuno."
+            "needs_hub": "Il dispositivo necessita di un gateway e non ne è stato selezionato nessuno.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "Indirizzo IP o hostname",
                     "local_key": "Local key",
                     "protocol_version": "Versione protocollo (prova 'auto' in caso di dubbi)",
-                    "poll_only": "Poll only (prova questa opzione se il dispositivo non funziona correttamente)"
+                    "poll_only": "Poll only (prova questa opzione se il dispositivo non funziona correttamente)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Impossibile connettersi al dispositivo con quei dettagli. Potrebbe essere un problema intermittente o potrebbero essere errati. Se hai selezionato una versione specifica del protocollo, prova invece 'auto'."
+            "connection": "Impossibile connettersi al dispositivo con quei dettagli. Potrebbe essere un problema intermittente o potrebbero essere errati. Se hai selezionato una versione specifica del protocollo, prova invece 'auto'.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Spiacente, questo dispositivo non è supportato."

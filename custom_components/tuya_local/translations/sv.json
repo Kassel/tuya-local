@@ -41,7 +41,8 @@
                     "local_key": "Lokal nyckel",
                     "protocol_version": "Protokoll version (prova auto om okänd)",
                     "poll_only": "Endast polling (prova detta om din enhet inte fungerar helt)",
-                    "device_cid": "Sub-enhet node_id eller uuid (för enheter anslutna via gateway)"
+                    "device_cid": "Sub-enhet node_id eller uuid (för enheter anslutna via gateway)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Kan inte ansluta till din enhet med dessa uppgifter. Det kan vara ett intermittent problem, eller så kan de vara felaktiga. Om du valde en specifik protokollversion, prova 'auto' istället.",
             "does_not_need_hub": "Enheten behöver ingen gateway och en valdes. Vänligen granska dina val.",
-            "needs_hub": "Enheten behöver en gateway och ingen valdes."
+            "needs_hub": "Enheten behöver en gateway och ingen valdes.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP-adress eller värdnamn",
                     "local_key": "Lokal nyckel",
                     "protocol_version": "Protokollversion (prova auto om okänd)",
-                    "poll_only": "Endast polling (prova detta om din enhet inte fungerar helt)"
+                    "poll_only": "Endast polling (prova detta om din enhet inte fungerar helt)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Kan inte ansluta till din enhet med dessa uppgifter. Det kan vara ett intermittent problem, eller så kan de vara felaktiga. Om du valde en specifik protokollversion, prova 'auto' istället."
+            "connection": "Kan inte ansluta till din enhet med dessa uppgifter. Det kan vara ett intermittent problem, eller så kan de vara felaktiga. Om du valde en specifik protokollversion, prova 'auto' istället.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Tyvärr finns det inget stöd för denna enhet."
@@ -121,7 +125,7 @@
                 },
                 "device": {
                     "name": "Enhet",
-                    "description": "Den IR-enhet som kommandot ska skickas till. Detta är valfritt och endast nödvändigt om kommandot sparades med en enhet." 
+                    "description": "Den IR-enhet som kommandot ska skickas till. Detta är valfritt och endast nödvändigt om kommandot sparades med en enhet."
                 }
             }
         }

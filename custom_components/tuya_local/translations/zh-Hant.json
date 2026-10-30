@@ -41,7 +41,8 @@
                     "local_key": "Local key",
                     "protocol_version": "協議版本（如果不清楚，請選擇自動）",
                     "poll_only": "僅輪詢（如果設備無法正常運作，請選擇此項）",
-                    "device_cid": "子設備node_id或uuid（對於透過網關連接的設備）"
+                    "device_cid": "子設備node_id或uuid（對於透過網關連接的設備）",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "無法使用這些詳細資訊連接到您的裝置。這可能是間歇性問題，或資訊不正確。如果您選擇了特定的協議版本，請改為嘗試'auto'。",
             "does_not_need_hub": "設備不需要網關，但選擇了一個。請檢查您的選擇。",
-            "needs_hub": "設備需要網關，但未選擇。"
+            "needs_hub": "設備需要網關，但未選擇。",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP位址或主機名",
                     "local_key": "Local key",
                     "protocol_version": "協議版本（如果不清楚，請選擇自動）",
-                    "poll_only": "僅輪詢（如果設備無法正常運作，請選擇此項）"
+                    "poll_only": "僅輪詢（如果設備無法正常運作，請選擇此項）",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "無法使用這些詳細資訊連接到您的裝置。這可能是間歇性問題，或資訊不正確。如果您選擇了特定的協議版本，請改為嘗試'auto'。"
+            "connection": "無法使用這些詳細資訊連接到您的裝置。這可能是間歇性問題，或資訊不正確。如果您選擇了特定的協議版本，請改為嘗試'auto'。",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "抱歉，不支援此設備。"
@@ -121,7 +125,7 @@
                 },
                 "device": {
                     "name": "設備",
-                    "description": "要發送命令的紅外線設備。這是可選的，僅在命令保存時帶有設備时需要。" 
+                    "description": "要發送命令的紅外線設備。這是可選的，僅在命令保存時帶有設備时需要。"
                 }
             }
         }

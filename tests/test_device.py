@@ -756,3 +756,58 @@ async def test_refresh_error_914_stays_quiet_when_rotating_protocols(
         await subject.async_refresh()
 
     assert caplog.text == ""
+
+
+def test_explicit_refresh_query_uses_helper(subject, mocker):
+    helper = mocker.patch(
+        "custom_components.tuya_local.device.query_refreshed_dps",
+        return_value={"dps": {"20": True}},
+    )
+    subject._refresh_dps = [20, 21]
+    assert subject._query_state() == {"dps": {"20": True}}
+    helper.assert_called_once_with(subject._api, [20, 21])
+    subject._api.status.assert_not_called()
+
+
+def test_default_query_preserves_status(subject):
+    subject._api.status.return_value = {"dps": {"1": True}}
+    assert subject._query_state() == {"dps": {"1": True}}
+    subject._api.status.assert_called_once_with()
+
+
+def test_explicit_refresh_rejects_gateway_child(patched_hass):
+    with pytest.raises(ValueError, match="direct devices only"):
+        TuyaLocalDevice(
+            "Test child",
+            "gateway",
+            "test.invalid",
+            "test-key",
+            "3.5",
+            "child-id",
+            patched_hass,
+            refresh_dpids="20,21",
+        )
+
+
+@pytest.mark.parametrize(
+    "refresh_value,expected", [("20,21,24", [20, 21, 24]), ("", [])]
+)
+def test_setup_device_keeps_refresh_setting(
+    patched_hass, mock_api, refresh_value, expected
+):
+    from custom_components.tuya_local.device import setup_device
+
+    device = setup_device(
+        patched_hass,
+        {
+            "name": "Test light",
+            "device_id": "test-device",
+            "host": "test.invalid",
+            "local_key": "test-only-key",
+            "protocol_version": 3.5,
+            "poll_only": False,
+            "refresh_dpids": refresh_value,
+        },
+    )
+    assert device._refresh_dps == expected
+    assert patched_hass.data[DOMAIN]["test-device"]["device"] is device

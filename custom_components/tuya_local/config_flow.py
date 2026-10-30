@@ -35,6 +35,7 @@ from .const import (
     CONF_MODEL,
     CONF_POLL_ONLY,
     CONF_PROTOCOL_VERSION,
+    CONF_REFRESH_DPIDS,
     CONF_TYPE,
     CONF_USER_CODE,
     DATA_STORE,
@@ -42,6 +43,7 @@ from .const import (
 from .device import TuyaLocalDevice
 from .helpers.config import get_device_id
 from .helpers.device_config import get_config
+from .helpers.dps_refresh import validate_refresh_dpids
 from .helpers.log import log_json
 
 _LOGGER = logging.getLogger(__name__)
@@ -388,6 +390,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         key_opts = {}
         proto_opts = {"default": "auto"}
         polling_opts = {"default": False}
+        refresh_opts = {"default": ""}
         devcid_opts = {}
 
         if self.__discovered_device is not None:
@@ -401,6 +404,22 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 devcid_opts = {"default": self.__discovered_device.get(CONF_DEVICE_CID)}
 
         if user_input is not None:
+            devid_opts["default"] = user_input[CONF_DEVICE_ID]
+            host_opts["default"] = user_input[CONF_HOST]
+            key_opts["default"] = user_input[CONF_LOCAL_KEY]
+            proto_opts["default"] = str(user_input[CONF_PROTOCOL_VERSION])
+            polling_opts["default"] = user_input[CONF_POLL_ONLY]
+            refresh_opts["default"] = user_input.get(CONF_REFRESH_DPIDS, "")
+            if CONF_DEVICE_CID in user_input:
+                devcid_opts["default"] = user_input[CONF_DEVICE_CID]
+            try:
+                validate_refresh_dpids(user_input.get(CONF_REFRESH_DPIDS, ""))
+            except ValueError:
+                errors["base"] = "invalid_refresh_dpids"
+
+        if user_input is not None and not errors:
+            if not user_input.get(CONF_REFRESH_DPIDS):
+                user_input.pop(CONF_REFRESH_DPIDS, None)
             proto = user_input.get(CONF_PROTOCOL_VERSION)
             if proto != "auto":
                 user_input[CONF_PROTOCOL_VERSION] = float(proto)
@@ -440,6 +459,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     devcid_opts["default"] = user_input[CONF_DEVICE_CID]
                 proto_opts["default"] = str(user_input[CONF_PROTOCOL_VERSION])
                 polling_opts["default"] = user_input[CONF_POLL_ONLY]
+                refresh_opts["default"] = user_input.get(CONF_REFRESH_DPIDS, "")
 
         return self.async_show_form(
             step_id="local",
@@ -453,6 +473,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         **proto_opts,
                     ): vol.In(["auto"] + [str(v) for v in API_PROTOCOL_VERSIONS]),
                     vol.Required(CONF_POLL_ONLY, **polling_opts): bool,
+                    vol.Optional(CONF_REFRESH_DPIDS, **refresh_opts): str,
                     vol.Optional(CONF_DEVICE_CID, **devcid_opts): str,
                 }
             ),
@@ -624,6 +645,17 @@ class OptionsFlowHandler(OptionsFlow):
         config = {**self.config_entry.data, **self.config_entry.options}
 
         if user_input is not None:
+            try:
+                validate_refresh_dpids(user_input.get(CONF_REFRESH_DPIDS, ""))
+            except ValueError:
+                errors["base"] = "invalid_refresh_dpids"
+                config = {**config, **user_input}
+
+        if user_input is not None and not errors:
+            if not user_input.get(CONF_REFRESH_DPIDS) and not config.get(
+                CONF_REFRESH_DPIDS
+            ):
+                user_input.pop(CONF_REFRESH_DPIDS, None)
             proto = user_input.get(CONF_PROTOCOL_VERSION)
             if proto != "auto":
                 user_input[CONF_PROTOCOL_VERSION] = float(proto)
@@ -647,6 +679,9 @@ class OptionsFlowHandler(OptionsFlow):
             vol.Required(
                 CONF_POLL_ONLY, default=config.get(CONF_POLL_ONLY, False)
             ): bool,
+            vol.Optional(
+                CONF_REFRESH_DPIDS, default=config.get(CONF_REFRESH_DPIDS, "")
+            ): str,
         }
         cfg = await self.hass.async_add_executor_job(
             get_config,
@@ -675,6 +710,7 @@ def create_test_device(hass: HomeAssistant, config: dict):
         subdevice_id,
         hass,
         True,
+        refresh_dpids=config.get(CONF_REFRESH_DPIDS, ""),
     )
 
     return device

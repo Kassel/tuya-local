@@ -41,7 +41,8 @@
                     "local_key": "Local key",
                     "protocol_version": "协议版本（如果不清楚，请选择自动）",
                     "poll_only": "仅轮询（如果设备无法正常工作，请选择此项）",
-                    "device_cid": "子设备node_id或uuid（对于通过网关连接的设备）"
+                    "device_cid": "子设备node_id或uuid（对于通过网关连接的设备）",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "无法使用这些详细信息连接到您的设备。这可能是间歇性问题，或信息不正确。如果您选择了特定的协议版本，请改为尝试“自动”。",
             "does_not_need_hub": "设备不需要网关，但选择了一个。请检查您的选择。",
-            "needs_hub": "设备需要网关，但未选择。"
+            "needs_hub": "设备需要网关，但未选择。",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP地址或主机名",
                     "local_key": "Local key",
                     "protocol_version": "协议版本（如果不清楚，请选择自动）",
-                    "poll_only": "仅轮询（如果设备无法正常工作，请选择此项）"
+                    "poll_only": "仅轮询（如果设备无法正常工作，请选择此项）",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "无法使用这些详细信息连接到您的设备。这可能是间歇性问题，或信息不正确。如果您选择了特定的协议版本，请改为尝试“自动”。"
+            "connection": "无法使用这些详细信息连接到您的设备。这可能是间歇性问题，或信息不正确。如果您选择了特定的协议版本，请改为尝试“自动”。",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "抱歉，不支持此设备。"
@@ -117,7 +121,7 @@
                 },
                 "command": {
                     "name": "命令",
-                    "description": "要发送的命令。必须是之前由此集成为此遥控器学习的命令。" 
+                    "description": "要发送的命令。必须是之前由此集成为此遥控器学习的命令。"
                 },
                 "device": {
                     "name": "设备",

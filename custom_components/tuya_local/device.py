@@ -25,10 +25,12 @@ from .const import (
     CONF_MODEL,
     CONF_POLL_ONLY,
     CONF_PROTOCOL_VERSION,
+    CONF_REFRESH_DPIDS,
     DOMAIN,
 )
 from .helpers.config import get_device_id
 from .helpers.device_config import possible_matches
+from .helpers.dps_refresh import parse_refresh_dpids, query_refreshed_dps
 from .helpers.log import log_json
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,6 +62,7 @@ class TuyaLocalDevice(object):
         poll_only=False,
         manufacturer=None,
         model=None,
+        refresh_dpids="",
     ):
         """
         Represents a Tuya-based device.
@@ -81,6 +84,11 @@ class TuyaLocalDevice(object):
         self._model = model
         self._children = []
         self._force_dps = []
+        self._refresh_dps = parse_refresh_dpids(refresh_dpids)
+        if self._refresh_dps and dev_cid:
+            raise ValueError(
+                "Explicit DPS refresh currently supports direct devices only"
+            )
         self._product_ids = []
         self._running = False
         self._shutdown_listener = None
@@ -368,7 +376,13 @@ class TuyaLocalDevice(object):
                 if now - last_cache > self._POLLING_INTERVAL or (
                     persist and needs_full_poll
                 ):
-                    if (
+                    if self._refresh_dps:
+                        poll = await self._retry_on_failed_connection(
+                            self._query_state,
+                            f"Failed to refresh device dps for {self.name}",
+                        )
+                        full_poll = True
+                    elif (
                         self._force_dps
                         and not dps_updated
                         and self._api_protocol_working
@@ -561,8 +575,13 @@ class TuyaLocalDevice(object):
         self._last_connection = 0
         self._last_full_poll = 0
 
+    def _query_state(self):
+        if self._refresh_dps:
+            return query_refreshed_dps(self._api, self._refresh_dps)
+        return self._api.status()
+
     def _refresh_cached_state(self):
-        new_state = self._api.status()
+        new_state = self._query_state()
         if new_state:
             if "Err" not in new_state:
                 self._cached_state = self._cached_state | new_state.get("dps", {})
@@ -693,7 +712,7 @@ class TuyaLocalDevice(object):
                     if isinstance(retval, dict) and "Error" in retval:
                         last_err_code = retval.get("Err")
                         last_err_msg = retval.get("Error")
-                        if last_err_code == "900":
+                        if last_err_code == "900" and not self._refresh_dps:
                             # Some devices (e.g. IR/RF remotes) never return
                             # status data; error 900 is their normal response
                             # to a status query. Treat as reachable with no
@@ -855,6 +874,7 @@ def setup_device(hass: HomeAssistant, config: dict):
         config[CONF_POLL_ONLY],
         manufacturer=config.get(CONF_MANUFACTURER),
         model=config.get(CONF_MODEL),
+        refresh_dpids=config.get(CONF_REFRESH_DPIDS, ""),
     )
     hass.data[DOMAIN][get_device_id(config)] = {
         "device": device,

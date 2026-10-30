@@ -40,7 +40,8 @@
                     "local_key": "Clau local",
                     "protocol_version": "Versió del protocol (intenteu-ho automàticament si no es coneix)",
                     "poll_only": "Només enquestes (proveu això si el vostre dispositiu no funciona completament)",
-                    "device_cid": "node_id o uuid del subdispositiu (per a dispositius connectats a través d'una passarel·la)"
+                    "device_cid": "node_id o uuid del subdispositiu (per a dispositius connectats a través d'una passarel·la)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -73,7 +74,8 @@
         "error": {
             "connection": "No s'ha pogut connectar al vostre dispositiu amb aquests detalls. Podria ser una qüestió intermitent, o pot ser que siguin incorrectes. Si heu seleccionat una versió específica del protocol, proveu «auto».",
             "needs_hub": "El dispositiu necessita una passarel·la i no se n'ha seleccionat cap.",
-            "does_not_need_hub": "El dispositiu no necessita una passarel·la i se n'ha seleccionat una. Reviseu les vostres opcions."
+            "does_not_need_hub": "El dispositiu no necessita una passarel·la i se n'ha seleccionat una. Reviseu les vostres opcions.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "title": "Tuya Local",
@@ -94,7 +96,8 @@
                     "host": "Adreça IP o nom d'amfitrió",
                     "local_key": "Clau local",
                     "protocol_version": "Versió del protocol (intenteu-ho automàticament si no es coneix)",
-                    "poll_only": "Només enquestes (proveu això si el vostre dispositiu no funciona completament)"
+                    "poll_only": "Només enquestes (proveu això si el vostre dispositiu no funciona completament)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 },
                 "description": "[Seguiu aquestes instruccions per a trobar la vostra clau local.]({device_details_url})"
             }
@@ -103,7 +106,8 @@
             "not_supported": "No hi ha suport per a aquest dispositiu."
         },
         "error": {
-            "connection": "No s'ha pogut connectar al vostre dispositiu amb aquests detalls. Podria ser una qüestió intermitent, o pot ser que siguin incorrectes. Si heu seleccionat una versió específica del protocol, proveu «auto»."
+            "connection": "No s'ha pogut connectar al vostre dispositiu amb aquests detalls. Podria ser una qüestió intermitent, o pot ser que siguin incorrectes. Si heu seleccionat una versió específica del protocol, proveu «auto».",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "services": {

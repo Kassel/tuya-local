@@ -41,7 +41,8 @@
                     "local_key": "Локален ключ",
                     "protocol_version": "Версия на протокола (опитайте автоматична, ако не е известна)",
                     "poll_only": "Само анкетиране (опитайте това, ако устройството ви не работи напълно)",
-                    "device_cid": "Sub device node_id или uuid (за устройства свързани чрез шлюз)"
+                    "device_cid": "Sub device node_id или uuid (за устройства свързани чрез шлюз)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Не може да се свърже с вашето устройство с тези данни. Възможно е да става въпрос за прекъсване или данните да са неправилни. Ако сте избрали конкретна версия на протокола, опитайте 'auto' вместо това.",
             "does_not_need_hub": "Устройството не се нуждае от шлюз и беше избран такъв. ",
-            "needs_hub": "Устройството се нуждае от шлюз и не е избран нито един."
+            "needs_hub": "Устройството се нуждае от шлюз и не е избран нито един.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP адрес или име на хост",
                     "local_key": "Локален ключ",
                     "protocol_version": "Версия на протокола (опитайте автоматична, ако не е известна)",
-                    "poll_only": "Само анкетиране (опитайте това, ако устройството ви не работи напълно)"
+                    "poll_only": "Само анкетиране (опитайте това, ако устройството ви не работи напълно)",
+                    "refresh_dpids": "DPS to refresh instead of status (comma-separated; leave empty for normal queries)"
                 }
             }
         },
         "error": {
-            "connection": "Не може да се свърже с вашето устройство с тези данни. Възможно е да става въпрос за прекъсване или данните да са неправилни. Ако сте избрали конкретна версия на протокола, опитайте 'auto' вместо това."
+            "connection": "Не може да се свърже с вашето устройство с тези данни. Възможно е да става въпрос за прекъсване или данните да са неправилни. Ако сте избрали конкретна версия на протокола, опитайте 'auto' вместо това.",
+            "invalid_refresh_dpids": "Enter up to 32 comma-separated DPS numbers between 1 and 255, or leave empty."
         },
         "abort": {
             "not_supported": "Съжаляваме, няма поддръжка за това устройство, все още"
@@ -703,7 +707,6 @@
                     "spanish": "Español",
                     "thai": "ภาษาไทย",
                     "turkish": "Türkçe",
-                    "polish": "Polski",
                     "vietnamese": "Tiếng Việt",
                     "off": "Изключено"
                 }

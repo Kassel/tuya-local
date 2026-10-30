@@ -41,7 +41,8 @@
                     "local_key": "lokální klíč (local_key)",
                     "protocol_version": "Verze protokolu (zkuste auto pokud ji neznáte)",
                     "poll_only": "Poll only (vyzkoušejte pokud zařízení úplně nefunguje)",
-                    "device_cid": "Sub device node_id nebo uuid (pro zařízení připojená pomocí brány)"
+                    "device_cid": "Sub device node_id nebo uuid (pro zařízení připojená pomocí brány)",
+                    "refresh_dpids": "DPS pro obnovení stavu (čísla oddělená čárkou; prázdné = běžné dotazy)"
                 }
             },
             "select_type": {
@@ -74,7 +75,8 @@
         "error": {
             "connection": "Není možné připojit se k zařízené s těmito údaji. Může se jednat o dočasný problém, nebo zadané údaje nejsou správné. Pokud jste vybrali konkrétní verzi protokolu, zkuste místo toho 'auto'.",
             "does_not_need_hub": "Zařízení nepotřebuje bránu a byla vybrána. ",
-            "needs_hub": "Zařízení potřebuje bránu a žádná nebyla vybrána."
+            "needs_hub": "Zařízení potřebuje bránu a žádná nebyla vybrána.",
+            "invalid_refresh_dpids": "Zadejte nejvýše 32 čísel DPS od 1 do 255 oddělených čárkou, nebo pole nechte prázdné."
         }
     },
     "selector": {
@@ -95,12 +97,14 @@
                     "host": "IP adresa nebo název hostitele (hostname)",
                     "local_key": "lokální klíč (local_key)",
                     "protocol_version": "Verze protokolu (zkuste auto pokud ji neznáte)",
-                    "poll_only": "Poll only (vyzkoušejte pokud zařízení úplně nefunguje)"
+                    "poll_only": "Poll only (vyzkoušejte pokud zařízení úplně nefunguje)",
+                    "refresh_dpids": "DPS pro obnovení stavu (čísla oddělená čárkou; prázdné = běžné dotazy)"
                 }
             }
         },
         "error": {
-            "connection": "Není možné připojit se k zařízené s těmito údaji. Může se jednat o dočasný problém, nebo zadané údaje nejsou správné. Pokud jste vybrali konkrétní verzi protokolu, zkuste místo toho 'auto'."
+            "connection": "Není možné připojit se k zařízené s těmito údaji. Může se jednat o dočasný problém, nebo zadané údaje nejsou správné. Pokud jste vybrali konkrétní verzi protokolu, zkuste místo toho 'auto'.",
+            "invalid_refresh_dpids": "Zadejte nejvýše 32 čísel DPS od 1 do 255 oddělených čárkou, nebo pole nechte prázdné."
         },
         "abort": {
             "not_supported": "Omlouváme se, toto zažízení není podporováno."
