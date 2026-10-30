@@ -663,29 +663,49 @@ class TuyaLocalDevice(object):
         await self._send_pending_updates()
 
     async def _send_pending_updates(self):
-        pending_properties = self._get_unsent_properties()
+        # All bookkeeping stays on HA's event loop. Prepare each attempt only
+        # after acquiring the API lock, so queued senders cannot replay an old
+        # snapshot or send a request another sender has already completed.
+        sending = {}
 
-        _LOGGER.debug(
-            "%s sending dps update: %s",
-            self.name,
-            log_json(pending_properties),
-        )
+        def prepare():
+            nonlocal sending
+            sending = {
+                key: entry
+                for key, entry in self._get_pending_updates().items()
+                if not entry["sent"]
+            }
+            if not sending:
+                return None
+            properties = {key: entry["value"] for key, entry in sending.items()}
+            _LOGGER.debug("%s sending dps update: %s", self.name, log_json(properties))
+            return lambda: self._set_values(properties)
+
+        def mark_sent(_result):
+            now = time()
+            self._last_connection = now
+            for key, entry in sending.items():
+                # A report may have removed the entry, or a newer command may
+                # have replaced it (even with the same value) while I/O ran.
+                if self._pending_updates.get(key) is entry:
+                    entry["updated_at"] = now
+                    entry["sent"] = True
 
         await self._retry_on_failed_connection(
-            lambda: self._set_values(pending_properties),
+            self._set_values,
             "Failed to update device state.",
+            prepare=prepare,
+            on_success=mark_sent,
         )
 
     def _set_values(self, properties):
-        self._api.set_multiple_values(properties, nowait=True)
-        now = time()
-        self._last_connection = now
-        pending_updates = self._get_pending_updates()
-        for key in properties.keys():
-            pending_updates[key]["updated_at"] = now
-            pending_updates[key]["sent"] = True
+        # The worker performs I/O only. Return TinyTuya errors to the retry
+        # handler instead of silently treating failed sends as successful.
+        return self._api.set_multiple_values(properties, nowait=True)
 
-    async def _retry_on_failed_connection(self, func, error_message):
+    async def _retry_on_failed_connection(
+        self, func, error_message, *, prepare=None, on_success=None
+    ):
         if self._api_protocol_version_index is None:
             await self._rotate_api_protocol_version()
         auto = (self._protocol_configured == "auto") and (
@@ -708,11 +728,20 @@ class TuyaLocalDevice(object):
             try:
                 if not self._hass.is_stopping:
                     async with self._api_lock:
-                        retval = await self._hass.async_add_executor_job(func)
-                    if isinstance(retval, dict) and "Error" in retval:
+                        job = prepare() if prepare is not None else func
+                        if job is None:
+                            return None
+                        retval = await self._hass.async_add_executor_job(job)
+                    if isinstance(retval, dict) and (
+                        "Error" in retval or "Err" in retval
+                    ):
                         last_err_code = retval.get("Err")
                         last_err_msg = retval.get("Error")
-                        if last_err_code == "900" and not self._refresh_dps:
+                        if (
+                            last_err_code == "900"
+                            and not self._refresh_dps
+                            and prepare is None
+                        ):
                             # Some devices (e.g. IR/RF remotes) never return
                             # status data; error 900 is their normal response
                             # to a status query. Treat as reachable with no
@@ -720,10 +749,19 @@ class TuyaLocalDevice(object):
                             self._cached_state["updated_at"] = time()
                             retval = None
                         else:
-                            raise AttributeError(retval["Error"])
+                            raise AttributeError(
+                                retval.get("Error", "Device communication failed")
+                            )
                     self._api_protocol_working = True
                     self._api_working_protocol_failures = 0
+                    if on_success is not None:
+                        on_success(retval)
                     return retval
+            except KeyError, IndexError, TypeError:
+                # Programming errors are not evidence of a broken connection.
+                # Surface them rather than replaying commands and closing the
+                # socket, which can turn one bookkeeping bug into a retry storm.
+                raise
             except Exception as e:
                 _LOGGER.debug(
                     "Retrying after exception %s %s (%d/%d)",

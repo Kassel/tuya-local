@@ -382,14 +382,15 @@ def test_refresh_cached_state(subject, mock_api):
     assert subject._cached_state["updated_at"] == pytest.approx(time(), abs=2)
 
 
-def test_set_values(subject, mock_api):
+@pytest.mark.asyncio
+async def test_set_values(subject, mock_api):
     # set up preconditions
     subject._pending_updates = {
         "1": {"value": "sample", "updated_at": time() - 2, "sent": False},
     }
 
     # call the function under test
-    subject._set_values({"1": "sample"})
+    await subject._send_pending_updates()
 
     # did it send what it was asked?
     mock_api().set_multiple_values.assert_called_once_with({"1": "sample"}, nowait=True)
@@ -811,3 +812,175 @@ def test_setup_device_keeps_refresh_setting(
     )
     assert device._refresh_dps == expected
     assert patched_hass.data[DOMAIN]["test-device"]["device"] is device
+
+
+@pytest.mark.asyncio
+async def test_sender_handles_removed_pending_entry(subject, mock_api):
+    subject._add_properties_to_pending_updates({"24": "red"})
+
+    def send(properties, nowait):
+        subject._pending_updates.clear()
+
+    mock_api().set_multiple_values.side_effect = send
+    await subject._send_pending_updates()
+    mock_api().set_multiple_values.assert_called_once_with({"24": "red"}, nowait=True)
+    assert subject._pending_updates == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("replacement", ["red", "blue"])
+async def test_sender_does_not_mark_new_request_sent(subject, mock_api, replacement):
+    subject._add_properties_to_pending_updates({"24": "red"})
+
+    def send(properties, nowait):
+        subject._add_properties_to_pending_updates({"24": replacement})
+
+    mock_api().set_multiple_values.side_effect = send
+    await subject._send_pending_updates()
+    assert subject._pending_updates["24"]["value"] == replacement
+    assert subject._pending_updates["24"]["sent"] is False
+
+
+@pytest.mark.asyncio
+async def test_queued_senders_send_latest_once(subject, mock_api):
+    mock_api().set_multiple_values.return_value = None
+    subject._add_properties_to_pending_updates({"24": "red"})
+    await subject._api_lock.acquire()
+    first = asyncio.create_task(subject._send_pending_updates())
+    second = asyncio.create_task(subject._send_pending_updates())
+    await asyncio.sleep(0)
+    subject._add_properties_to_pending_updates({"24": "blue"})
+    subject._api_lock.release()
+    await asyncio.gather(first, second)
+    mock_api().set_multiple_values.assert_called_once_with({"24": "blue"}, nowait=True)
+    assert subject._pending_updates["24"]["sent"] is True
+
+
+@pytest.mark.asyncio
+async def test_send_error_retries_without_marking_sent(subject, mock_api):
+    subject._add_properties_to_pending_updates({"24": "red"})
+    observations = []
+
+    def send(properties, nowait):
+        observations.append(subject._pending_updates["24"]["sent"])
+        if len(observations) == 1:
+            return {"Err": "914", "Error": "session negotiation failed"}
+        return None
+
+    mock_api().set_multiple_values.side_effect = send
+    await subject._send_pending_updates()
+    assert observations == [False, False]
+    assert subject._pending_updates["24"]["sent"] is True
+
+
+@pytest.mark.asyncio
+async def test_empty_pending_does_not_send(subject, mock_api):
+    await subject._send_pending_updates()
+    mock_api().set_multiple_values.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error", [KeyError("24"), TypeError("test"), IndexError("test")]
+)
+async def test_programming_error_does_not_reset_socket(subject, mocker, error):
+    call = mocker.Mock(side_effect=error)
+    with pytest.raises(type(error)):
+        await subject._retry_on_failed_connection(call, "Test operation")
+    call.assert_called_once_with()
+    subject._api.set_socketPersistent.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_real_worker_preserves_command_added_during_send(
+    subject, mock_api, mocker
+):
+    """Use barriers and a real worker instead of synchronous executor mocks."""
+    import threading
+
+    loop = asyncio.get_running_loop()
+    main_thread = threading.get_ident()
+    started = asyncio.Event()
+    release = threading.Event()
+    bookkeeping_threads = []
+    original_get = subject._get_pending_updates
+
+    def get_pending():
+        bookkeeping_threads.append(threading.get_ident())
+        return original_get()
+
+    mocker.patch.object(subject, "_get_pending_updates", side_effect=get_pending)
+
+    def send(properties, nowait):
+        assert threading.get_ident() != main_thread
+        loop.call_soon_threadsafe(started.set)
+        if not release.wait(3):
+            raise RuntimeError("Test barrier timed out")
+        return None
+
+    async def executor(func, *args):
+        return await asyncio.to_thread(func, *args)
+
+    mocker.patch.object(subject._hass, "async_add_executor_job", side_effect=executor)
+    mock_api().set_multiple_values.side_effect = send
+    subject._add_properties_to_pending_updates({"24": "red"})
+    task = asyncio.create_task(subject._send_pending_updates())
+    try:
+        await asyncio.wait_for(started.wait(), 3)
+        subject._add_properties_to_pending_updates({"24": "blue"})
+    finally:
+        release.set()
+        await task
+    assert subject._pending_updates["24"]["value"] == "blue"
+    assert subject._pending_updates["24"]["sent"] is False
+    assert set(bookkeeping_threads) == {main_thread}
+
+
+@pytest.mark.asyncio
+async def test_retry_rebuilds_request_when_new_command_arrives(subject, mock_api):
+    subject._add_properties_to_pending_updates({"24": "red"})
+    requests = []
+
+    def send(properties, nowait):
+        requests.append(properties.copy())
+        if len(requests) == 1:
+            subject._add_properties_to_pending_updates({"24": "blue"})
+            return {"Error": "connection failed", "Err": "901"}
+        return None
+
+    mock_api().set_multiple_values.side_effect = send
+    await subject._send_pending_updates()
+    assert requests == [{"24": "red"}, {"24": "blue"}]
+    assert subject._pending_updates["24"]["sent"] is True
+
+
+@pytest.mark.asyncio
+async def test_control_error_900_is_not_status_success(subject, mock_api):
+    subject._add_properties_to_pending_updates({"24": "red"})
+    observations = []
+
+    def send(properties, nowait):
+        observations.append(subject._pending_updates["24"]["sent"])
+        return {"Error": "invalid command", "Err": "900"}
+
+    mock_api().set_multiple_values.side_effect = send
+    await subject._send_pending_updates()
+    assert observations == [False, False, False]
+    assert subject._pending_updates == {}
+    assert subject._api_working_protocol_failures == 1
+
+
+@pytest.mark.asyncio
+async def test_cancelled_queued_sender_does_not_send_or_mark(subject, mock_api):
+    subject._add_properties_to_pending_updates({"24": "red"})
+    await subject._api_lock.acquire()
+    task = asyncio.create_task(subject._send_pending_updates())
+    await asyncio.sleep(0)
+    task.cancel()
+    try:
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    finally:
+        subject._api_lock.release()
+    mock_api().set_multiple_values.assert_not_called()
+    assert subject._pending_updates["24"]["sent"] is False
