@@ -984,3 +984,317 @@ async def test_cancelled_queued_sender_does_not_send_or_mark(subject, mock_api):
         subject._api_lock.release()
     mock_api().set_multiple_values.assert_not_called()
     assert subject._pending_updates["24"]["sent"] is False
+
+
+@pytest.mark.asyncio
+async def test_runtime_refresh_ignores_ack_and_merges_reports(
+    subject, mock_api, mocker
+):
+    subject._refresh_dps = [20, 21]
+    subject._cached_state = {"20": False, "21": "white", "updated_at": time()}
+    subject._last_full_poll = 0
+    subject._running = True
+    mock_api().parent = None
+    mock_api().updatedps.return_value = None
+    blocking_query = mocker.patch.object(subject, "_query_state")
+    receive = mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps",
+        side_effect=[None, {"dps": {"20": True}}, {"dps": {"21": "colour"}}],
+    )
+    mocker.patch("custom_components.tuya_local.device.asyncio.sleep")
+    loop = subject.async_receive()
+    try:
+        first = await asyncio.wait_for(loop.__anext__(), 2)
+        second = await asyncio.wait_for(loop.__anext__(), 2)
+        assert first == {"20": True, "full_poll": False}
+        assert second == {"20": True, "21": "colour", "full_poll": True}
+        mock_api().updatedps.assert_called_once_with([20, 21], nowait=True)
+        blocking_query.assert_not_called()
+        assert receive.call_count == 3
+        assert subject._api_working_protocol_failures == 0
+        assert all(
+            c.args != (False,) for c in mock_api().set_socketPersistent.call_args_list
+        )
+    finally:
+        subject._running = False
+        with pytest.raises(StopAsyncIteration):
+            await loop.__anext__()
+
+
+@pytest.mark.asyncio
+async def test_missing_runtime_report_does_not_flood_or_disconnect(
+    subject, mock_api, mocker
+):
+    subject._refresh_dps = [20]
+    subject._cached_state = {"20": True, "updated_at": time() - 100}
+    subject._running = True
+    subject._last_full_poll = 0
+    mock_api().parent = None
+    mock_api().updatedps.return_value = None
+    mocker.patch.object(subject, "_query_state")
+    reads = []
+
+    def no_report(api):
+        reads.append(True)
+        if len(reads) == 5:
+            subject._running = False
+        return None
+
+    mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps",
+        side_effect=no_report,
+    )
+    mocker.patch("custom_components.tuya_local.device.asyncio.sleep")
+    loop = subject.async_receive()
+    with pytest.raises(StopAsyncIteration):
+        await asyncio.wait_for(loop.__anext__(), 2)
+    assert len(reads) == 5
+    mock_api().updatedps.assert_called_once_with([20], nowait=True)
+    # Only the final shutdown may disable persistence.
+    assert [c.args for c in mock_api().set_socketPersistent.call_args_list].count(
+        (False,)
+    ) == 1
+    assert subject._api_working_protocol_failures == 0
+
+
+@pytest.mark.asyncio
+async def test_explicit_startup_keeps_bounded_collector(subject, mock_api, mocker):
+    subject._refresh_dps = [20]
+    subject._cached_state = {"updated_at": 0}
+    subject._running = True
+    mock_api().parent = None
+    query = mocker.patch.object(
+        subject, "_query_state", return_value={"dps": {"20": True}}
+    )
+    loop = subject.async_receive()
+    assert await loop.__anext__() == {"20": True, "full_poll": True}
+    query.assert_called_once()
+    mock_api().updatedps.assert_not_called()
+    subject._running = False
+    with pytest.raises(StopAsyncIteration):
+        await loop.__anext__()
+
+
+@pytest.mark.asyncio
+async def test_explicit_heartbeat_and_receive_wait_for_api_lock(
+    subject, mock_api, mocker
+):
+    subject._refresh_dps = [20]
+    subject._cached_state = {"20": True, "updated_at": time() - 10}
+    subject._last_full_poll = time()
+    subject._running = True
+    mock_api().parent = None
+    mock_api().heartbeat.return_value = None
+    events = []
+    mock_api().heartbeat.side_effect = lambda *_: events.append("heartbeat")
+
+    def receive(api):
+        events.append("receive")
+        assert subject._api_lock.locked()
+        return {"dps": {"20": True}}
+
+    mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps", side_effect=receive
+    )
+    await subject._api_lock.acquire()
+    loop = subject.async_receive()
+    task = asyncio.create_task(loop.__anext__())
+    try:
+        await asyncio.sleep(0)
+        assert events == []
+    finally:
+        subject._api_lock.release()
+    assert await task == {"20": True, "full_poll": False}
+    assert events == ["heartbeat", "receive"]
+    subject._running = False
+    with pytest.raises(StopAsyncIteration):
+        await loop.__anext__()
+
+
+def test_runtime_partial_reports_do_not_clear_other_state(subject):
+    subject._refresh_dps = [20, 21]
+    subject._runtime_refresh_data = {}
+    first, full = subject._merge_runtime_refresh({"dps": {"20": True}})
+    assert first == {"dps": {"20": True}}
+    assert full is False
+    second, full = subject._merge_runtime_refresh({"data": {"dps": {"21": "white"}}})
+    assert second == {"dps": {"20": True, "21": "white"}}
+    assert full is True
+    assert subject._runtime_refresh_data is None
+    assert subject._merge_runtime_refresh({"dps": {"24": "red"}}) == (
+        {"dps": {"24": "red"}},
+        False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_actual_receive_error_still_disables_connection(
+    subject, mock_api, mocker
+):
+    subject._refresh_dps = [20]
+    subject._cached_state = {"20": True, "updated_at": time()}
+    subject._last_full_poll = time()
+    subject._running = True
+    mock_api().parent = None
+
+    def receive(api):
+        subject._running = False
+        return {"Error": "connection lost", "Err": "901"}
+
+    mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps", side_effect=receive
+    )
+    mocker.patch("custom_components.tuya_local.device.asyncio.sleep")
+    loop = subject.async_receive()
+    with pytest.raises(StopAsyncIteration):
+        await loop.__anext__()
+    mock_api().set_socketPersistent.assert_any_call(False)
+    assert subject._api_working_protocol_failures == 1
+
+
+@pytest.mark.asyncio
+async def test_real_runtime_refresh_allows_control_between_ack_and_reports(
+    subject, mocker
+):
+    """Real TinyTuya 3.5 plus a socketpair reproduces the delayed-report path."""
+    import json
+    import socket
+
+    from tinytuya.core.Device import Device
+    from tinytuya.core.message_helper import TuyaMessage, pack_message
+
+    from custom_components.tuya_local.helpers.dps_refresh import receive_available_dps
+
+    key = b"0123456789abcdef"
+    reader, server = socket.socketpair()
+    server.setblocking(False)
+    api = Device("test-device", "127.0.0.1", key.decode())
+    api.set_version(3.5)
+    api.set_socketPersistent(True)
+    api.socket = reader
+    subject._api = api
+    subject._refresh_dps = [20, 21]
+    subject._cached_state = {"20": False, "updated_at": time()}
+    subject._last_full_poll = 0
+    subject._running = True
+    loop = asyncio.get_running_loop()
+    ack_seen = asyncio.Event()
+    commands = []
+
+    async def executor(func, *args):
+        return await asyncio.to_thread(func, *args)
+
+    def receive(api):
+        result = receive_available_dps(api)
+        if result is None and any(msg.cmd == 13 for msg in api.raw_recv):
+            loop.call_soon_threadsafe(ack_seen.set)
+        return result
+
+    mocker.patch.object(subject._hass, "async_add_executor_job", side_effect=executor)
+    mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps", side_effect=receive
+    )
+
+    async def read_frame():
+        data = b""
+        while len(data) < 18:
+            data += await loop.sock_recv(server, 18 - len(data))
+        length = int.from_bytes(data[14:18], "big") + 4
+        while len(data) < 18 + length:
+            data += await loop.sock_recv(server, 18 + length - len(data))
+        return int.from_bytes(data[10:14], "big")
+
+    async def send_frame(seq, cmd, payload):
+        message = TuyaMessage(seq, cmd, 0, payload, 0, True, 0x6699, b"0123456789ab")
+        await loop.sock_sendall(server, pack_message(message, hmac_key=key))
+
+    async def device_server():
+        commands.append(await read_frame())
+        await send_frame(1, 13, b"")
+        await asyncio.wait_for(ack_seen.wait(), 2)
+        # Hold the state report until a CONTROL has passed through the same
+        # API lock; a blocking collector would prevent this from completing.
+        commands.append(await read_frame())
+        await send_frame(2, 8, json.dumps({"dps": {"20": True}}).encode())
+        await send_frame(3, 8, json.dumps({"dps": {"21": "colour"}}).encode())
+
+    receiver = subject.async_receive()
+    next_report = asyncio.create_task(receiver.__anext__())
+    server_task = asyncio.create_task(device_server())
+    try:
+        await asyncio.wait_for(ack_seen.wait(), 2)
+        assert api.socket is reader
+        await asyncio.wait_for(subject.async_set_properties({"24": "red"}), 1)
+        first = await asyncio.wait_for(next_report, 2)
+        second = await asyncio.wait_for(receiver.__anext__(), 2)
+        await asyncio.wait_for(server_task, 2)
+        assert commands == [18, 13]
+        assert first == {"20": True, "full_poll": False}
+        assert second == {"20": True, "21": "colour", "full_poll": True}
+        assert api.socket is reader
+        assert subject._api_working_protocol_failures == 0
+    finally:
+        subject._running = False
+        for task in [next_report, server_task]:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(next_report, server_task, return_exceptions=True)
+        await receiver.aclose()
+        reader.close()
+        server.close()
+        api.socket = None
+
+
+@pytest.mark.asyncio
+async def test_incomplete_runtime_refresh_reissues_only_after_interval(
+    subject, mock_api, mocker
+):
+    subject._refresh_dps = [20]
+    subject._cached_state = {"20": True, "updated_at": time() - 100}
+    subject._last_full_poll = 0
+    subject._running = True
+    mock_api().parent = None
+    mock_api().updatedps.return_value = None
+    clock = [time()]
+    mocker.patch(
+        "custom_components.tuya_local.device.time", side_effect=lambda: clock[0]
+    )
+    reads = []
+
+    def receive(api):
+        reads.append(True)
+        if len(reads) == 1:
+            clock[0] += subject._POLLING_INTERVAL + 1
+        else:
+            subject._running = False
+        return None
+
+    mocker.patch(
+        "custom_components.tuya_local.device.receive_available_dps", side_effect=receive
+    )
+    mocker.patch("custom_components.tuya_local.device.asyncio.sleep")
+    with pytest.raises(StopAsyncIteration):
+        await subject.async_receive().__anext__()
+    assert mock_api().updatedps.call_count == 2
+    assert len(reads) == 2
+    assert subject._api_working_protocol_failures == 0
+
+
+@pytest.mark.asyncio
+async def test_explicit_poll_only_keeps_original_collector(subject, mock_api, mocker):
+    subject._refresh_dps = [20]
+    subject._poll_only = True
+    subject._cached_state = {"20": True, "updated_at": time() - 100}
+    subject._running = True
+    mock_api().parent = None
+    query = mocker.patch.object(
+        subject, "_query_state", return_value={"dps": {"20": True}}
+    )
+    receive = mocker.patch("custom_components.tuya_local.device.receive_available_dps")
+    gen = subject.async_receive()
+    assert await gen.__anext__() == {"20": True, "full_poll": True}
+    query.assert_called_once()
+    receive.assert_not_called()
+    subject._running = False
+    with pytest.raises(StopAsyncIteration):
+        await gen.__anext__()

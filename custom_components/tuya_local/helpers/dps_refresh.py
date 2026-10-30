@@ -1,5 +1,6 @@
 """Explicit, bounded DPS refresh for devices that reject status queries."""
 
+from select import select
 from time import monotonic
 
 
@@ -75,3 +76,27 @@ def query_refreshed_dps(api, dpids):
         api.set_retry(retry)
         api.set_socketTimeout(timeout)
         api.set_socketPersistent(persistent)
+
+
+def receive_available_dps(api):
+    """Read at most one ready message without waiting on an idle socket.
+
+    Called by the persistent receiver while holding the API lock. Preserve
+    TinyTuya's framing and socket timeout: a partly delivered frame must not
+    be discarded by introducing a new, short socket timeout.
+    """
+    if api.socket is None:
+        return None
+    try:
+        readable, _, _ = select([api.socket], [], [], 0)
+    except OSError, ValueError:
+        return {"Error": "Receive socket unavailable", "Err": "901", "Payload": None}
+    if not readable:
+        return None
+    retry = api.retry
+    try:
+        # An empty ACK ends this read, not the connection or refresh request.
+        api.set_retry(False)
+        return api.receive()
+    finally:
+        api.set_retry(retry)
